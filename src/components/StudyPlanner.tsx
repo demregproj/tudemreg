@@ -88,9 +88,9 @@ export default function StudyPlanner() {
         const savedUser = localStorage.getItem("regplan_user");
         
         const [resCourses, resPrereqs, resCurriculums] = await Promise.all([
-          supabase.from("master_courses").select("*"),
-          supabase.from("prerequisites").select("*"),
-          supabase.from("curriculums").select("*").order('academic_year', { ascending: false })
+          supabase.from("master_courses").select("*").limit(50000),
+          supabase.from("prerequisites").select("*").limit(50000),
+          supabase.from("curriculums").select("*")
         ]);
 
         if (resCurriculums.data) setCurriculumsList(resCurriculums.data);

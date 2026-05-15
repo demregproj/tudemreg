@@ -34,7 +34,7 @@ export default function LandingPage() {
           </h2>
           <p className="text-xl md:text-2xl text-gray-200 font-bold mb-12 max-w-3xl mx-auto leading-relaxed">
             เว็บไซต์ช่วยจัดตารางเรียนและวางแผนการศึกษาตลอดหลักสูตร <br/>
-            <span className="text-3xl font-black mb-12 text-center uppercase italic">เพื่อเพื่อนนักศึกษาธรรมศาสตร์</span>
+            <span className="text-xl font-black mb-12 text-center uppercase italic">เพื่อเพื่อนนักศึกษาธรรมศาสตร์</span>
           </p>
           
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
@@ -147,7 +147,7 @@ export default function LandingPage() {
           </div>
           <div className="bg-white p-8 rounded-3xl border-2 border-gray-100 shadow-sm">
             <h6 className="font-black text-[#1E0B99] text-xl mb-3 italic">Q: ผู้พัฒนาเว็บไซต์นี้คือใคร และติดต่อได้อย่างไร?</h6>
-            <p className="font-bold text-gray-500">A: เราคือกลุ่มนักศึกษาที่พัฒนาเว็บไซต์นี้ขึ้นมาเพื่อประโยชน์ในการใช้งานของนักศึกษาทุนคน สามารถติดต่อเราได้ที่ demreg.proj@gmail.com</p>
+            <p className="font-bold text-gray-500">A: เราคือกลุ่มนักศึกษาที่พัฒนาเว็บไซต์นี้ขึ้นมาเพื่อประโยชน์ในการใช้งานของนักศึกษาทุกคน สามารถติดต่อเราได้ที่ demreg.proj@gmail.com</p>
           </div>
         </div>
       </section>
@@ -159,8 +159,8 @@ export default function LandingPage() {
             <div>
               <h4 className="text-xl font-black mb-8 uppercase border-l-4 border-[#FBBF24] pl-4 italic">นโยบายความเป็นส่วนตัว (PDPA)</h4>
               <p className="text-sm text-gray-400 font-bold leading-relaxed">
-                เราจัดเก็บรหัสนักศึกษาและชื่อเพื่อใช้ในการเรียกดูแผนการเรียนส่วนบุคคลของคุณเท่านั้น ข้อมูลทั้งหมดจะถูกเก็บเป็นความลับในฐานข้อมูลที่ปลอดภัย 
-                และจะไม่มีการนำไปเผยแพร่หรือใช้งานเพื่อวัตถุประสงค์อื่นแต่อย่างใด หากคุณมีคำถามหรือข้อกังวลเกี่ยวกับข้อมูลส่วนบุคคลของคุณ สามารถติดต่อกับผู้พัฒนาเพื่อจัดการข้อมูล
+                เราจัดเก็บข้อมูลส่วนบุคคลได้แก่ชื่อ คณะ และรหัสปีที่เข้าศึกษา (69XXX) เพื่อยืนยันตัวตนและอ้างอิงหลักสูตรเท่านั้น โดยข้อมูลทั้งหมดจะถูกเก็บเป็นความลับในฐานข้อมูลที่ปลอดภัย 
+                และจะไม่มีการเผยแพร่หรือนำไปใช้งานเพื่อวัตถุประสงค์อื่นแต่อย่างใด หากคุณมีคำถามหรือข้อกังวลเกี่ยวกับข้อมูลส่วนบุคคลของคุณ สามารถติดต่อกับผู้พัฒนาเพื่อจัดการข้อมูลได้ทันที
               </p>
             </div>
             <div className="md:text-right">
