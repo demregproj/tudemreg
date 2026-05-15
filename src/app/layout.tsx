@@ -3,8 +3,8 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 
 export const metadata: Metadata = {
-  title: "TUDEMREG",
-  description: "ระบบจัดตารางเรียนและวางแผนการเรียน",
+  title: "REGPLANing ✔",
+  description: "ทดลองจัดตารางเรียนและวางแผนการเรียน",
 };
 
 export default function RootLayout({

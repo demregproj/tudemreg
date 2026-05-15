@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import Timetable, { getCourseTheme } from "./Timetable";
 import { supabase } from "@/lib/supabase";
+import html2canvas from "html2canvas"; // 🟢 Import html2canvas
 
 const timeToMins = (timeStr: string) => {
   if (!timeStr) return 0;
@@ -26,7 +27,9 @@ export default function CourseManager({ allCourses }: { allCourses: any[] }) {
   const [viewingCourseCode, setViewingCourseCode] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false); 
 
-  // --- State สำหรับ Custom Pop-up ---
+  // 🟢 Ref สำหรับการอ้างอิงพื้นที่ที่จะแคปเจอร์เป็นรูปภาพ
+  const timetableRef = useRef<HTMLDivElement>(null);
+
   const [pendingAdd, setPendingAdd] = useState<any[] | null>(null);
   const [customAlert, setCustomAlert] = useState<{
     isOpen: boolean;
@@ -35,6 +38,33 @@ export default function CourseManager({ allCourses }: { allCourses: any[] }) {
     messages: string[];
   } | null>(null);
 
+  const getUserId = () => {
+    if (typeof window !== "undefined") {
+      const savedUser = localStorage.getItem("regplan_user");
+      return savedUser ? JSON.parse(savedUser).id : null;
+    }
+    return null;
+  };
+
+  useEffect(() => {
+    const loadSavedSchedule = async () => {
+      const userId = getUserId();
+      if (!userId || !allCourses || allCourses.length === 0) return;
+      
+      const { data, error } = await supabase
+        .from("registrations")
+        .select("section_id")
+        .eq("user_id", userId);
+
+      if (data && !error) {
+        const savedSectionIds = data.map((d: any) => d.section_id);
+        const savedCourses = allCourses.filter(c => savedSectionIds.includes(c.id));
+        setSelectedCourses(savedCourses);
+      }
+    };
+    loadSavedSchedule();
+  }, [allCourses]);
+  
   const uniqueSubjects = useMemo(() => {
     if (!allCourses) return [];
     const term = searchTerm.toLowerCase();
@@ -97,23 +127,13 @@ export default function CourseManager({ allCourses }: { allCourses: any[] }) {
     }
 
     if (finalConflict) {
-      setCustomAlert({
-        isOpen: true,
-        type: "error",
-        title: "ไม่สามารถลงทะเบียนได้!",
-        messages: [finalConflict]
-      });
+      setCustomAlert({ isOpen: true, type: "error", title: "ไม่สามารถลงทะเบียนได้!", messages: [finalConflict] });
       return;
     }
 
     if (classConflicts.length > 0 || midtermConflicts.length > 0) {
       setPendingAdd(allPeriodsOfNewCourse);
-      setCustomAlert({
-        isOpen: true,
-        type: "warning",
-        title: "พบเวลาซ้อนทับกัน",
-        messages: [...classConflicts, ...midtermConflicts]
-      });
+      setCustomAlert({ isOpen: true, type: "warning", title: "พบเวลาซ้อนทับกัน", messages: [...classConflicts, ...midtermConflicts] });
       return;
     }
 
@@ -121,53 +141,63 @@ export default function CourseManager({ allCourses }: { allCourses: any[] }) {
     setIsSearchOpen(false);
   };
 
-  // --- ฟังก์ชันบันทึกตารางเรียนลง Supabase (อัปเดตตามโครงสร้างใหม่) ---
   const handleSaveTimetable = async () => {
     if (selectedCourses.length === 0) {
-      setCustomAlert({
-        isOpen: true,
-        type: "info",
-        title: "ไม่พบข้อมูล",
-        messages: ["กรุณาเลือกวิชาอย่างน้อย 1 วิชาเพื่อบันทึกตารางเรียนครับ"]
-      });
+      setCustomAlert({ isOpen: true, type: "info", title: "ไม่พบข้อมูล", messages: ["กรุณาเลือกวิชาอย่างน้อย 1 วิชาเพื่อบันทึกตารางเรียนครับ"] });
+      return;
+    }
+
+    const userId = getUserId();
+    if (!userId) {
+      setCustomAlert({ isOpen: true, type: "warning", title: "โหมดบุคคลทั่วไป (Guest)", messages: ["กรุณาล็อกอินเพื่อบันทึกตารางเรียนลงฐานข้อมูลครับ"] });
       return;
     }
 
     setIsSaving(true);
     try {
-      // TODO: เปลี่ยนเป็น User ID จริงเมื่อมีระบบ Login
-      const dummyUserId = "00000000-0000-0000-0000-000000000000";
+      const userId = getUserId();
+      if (!userId) throw new Error("ไม่พบข้อมูลผู้ใช้งาน กรุณาล็อกอินใหม่อีกครั้ง");
 
-      // ลบข้อมูลตารางเรียนเดิมของเทอมนี้ทิ้งก่อนบันทึกใหม่
-      await supabase.from("registrations").delete().eq("user_id", dummyUserId);
+      await supabase.from("registrations").delete().eq("user_id", userId);
 
-      // ดึง ID ของ Section จากตาราง term_sections ที่ผู้ใช้เลือก
       const uniqueSectionIds = Array.from(new Set(selectedCourses.map(c => c.id)));
-      
-      const insertData = uniqueSectionIds.map(sectionId => ({
-        user_id: dummyUserId,
-        section_id: sectionId // บันทึกเชื่อมโยงไปยัง term_sections
-      }));
+      const insertData = uniqueSectionIds.map(sectionId => ({ user_id: userId, section_id: sectionId }));
 
       const { error } = await supabase.from("registrations").insert(insertData);
       if (error) throw error;
 
-      setCustomAlert({
-        isOpen: true,
-        type: "success",
-        title: "บันทึกสำเร็จ!",
-        messages: ["ตารางเรียนของคุณถูกบันทึกเข้าสู่ระบบเรียบร้อยแล้วครับ"]
-      });
-    } catch (err) {
-      console.error(err);
-      setCustomAlert({
-        isOpen: true,
-        type: "error",
-        title: "เกิดข้อผิดพลาด",
-        messages: ["ไม่สามารถบันทึกตารางเรียนได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง"]
-      });
+      setCustomAlert({ isOpen: true, type: "success", title: "บันทึกสำเร็จ!", messages: ["ตารางเรียนของคุณถูกบันทึกเข้าสู่ระบบเรียบร้อยแล้วครับ"] });
+    } catch (err: any) {
+      setCustomAlert({ isOpen: true, type: "error", title: "เกิดข้อผิดพลาด", messages: [err.message || "ไม่สามารถบันทึกตารางเรียนได้ในขณะนี้"] });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // 🟢 ฟังก์ชันสำหรับ Export เป็นรูปภาพ
+  const handleExportImage = async () => {
+    if (!timetableRef.current) return;
+    
+    try {
+      // แคปเจอร์หน้าจอด้วย html2canvas
+      const canvas = await html2canvas(timetableRef.current, {
+        scale: 2.5, // ความละเอียดสูง x2.5 จะทำให้ภาพชัดมาก
+        backgroundColor: "#F9FAFB", // ใช้สีพื้นหลัง gray-50 เพื่อให้ภาพเนียนตา
+        useCORS: true, 
+      });
+      
+      const image = canvas.toDataURL("image/png");
+      
+      // สั่งดาวน์โหลดลงเครื่องอัตโนมัติ
+      const link = document.createElement("a");
+      link.href = image;
+      link.download = `REGPLANing-Schedule-${new Date().getTime()}.png`;
+      link.click();
+      
+      setCustomAlert({ isOpen: true, type: "success", title: "เซฟรูปสำเร็จ!", messages: ["ระบบได้บันทึกตารางเรียนเป็นรูปภาพลงในเครื่องของคุณแล้วครับ"] });
+    } catch (err) {
+      console.error("Export Failed:", err);
+      setCustomAlert({ isOpen: true, type: "error", title: "เกิดข้อผิดพลาด", messages: ["ไม่สามารถบันทึกรูปภาพได้ครับ"] });
     }
   };
 
@@ -190,6 +220,15 @@ export default function CourseManager({ allCourses }: { allCourses: any[] }) {
       <div className="flex justify-between items-end mb-6 pb-4 border-b border-gray-200">
         <h1 className="text-3xl font-black text-gray-900 tracking-tight italic uppercase">จัดตารางเรียน</h1>
         <div className="flex items-center gap-3">
+          
+          {/* 🟢 ปุ่มเซฟรูปภาพ */}
+          <button 
+            onClick={handleExportImage}
+            className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md flex items-center gap-2 bg-[#1E0B99] text-white hover:bg-black hover:-translate-y-1"
+          >
+            📸 เซฟเป็นรูปภาพ
+          </button>
+
           <button 
             onClick={handleSaveTimetable}
             disabled={isSaving}
@@ -199,11 +238,25 @@ export default function CourseManager({ allCourses }: { allCourses: any[] }) {
           >
             {isSaving ? "SAVING..." : "💾 บันทึกตารางเรียน"}
           </button>
-          <div className="text-xs font-semibold text-gray-400 tracking-wider">TUDEMREG</div>
         </div>
       </div>
 
-      <Timetable selectedCourses={selectedCourses} />
+      {/* 🟢 พื้นที่สำหรับแคปเจอร์รูป (ใส่ Ref ไว้ที่ div นี้) */}
+      <div ref={timetableRef} className="bg-gray-50 p-6 md:p-8 rounded-[3rem] border-2 border-gray-100 relative mb-12 shadow-sm">
+        {/* Header สวยๆ ที่จะติดไปในรูปภาพด้วย */}
+        <div className="flex justify-between items-end mb-8 px-2">
+           <div>
+             <h2 className="text-3xl font-black text-gray-900 italic uppercase tracking-tighter">My Schedule</h2>
+             <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1">ตารางเรียนและวันสอบ</p>
+           </div>
+           <div className="text-right pb-1">
+             <span className="text-[#1E0B99] font-black italic text-2xl tracking-tighter">REG<span className="text-gray-900">PLANing</span> <span className="text-green-500">✔</span></span>
+           </div>
+        </div>
+        
+        {/* Component ตารางเรียนตัวเดิม */}
+        <Timetable selectedCourses={selectedCourses} />
+      </div>
 
       <div className="mt-12">
         <div className="flex justify-between items-center mb-6">
@@ -392,7 +445,7 @@ export default function CourseManager({ allCourses }: { allCourses: any[] }) {
                     customAlert.type === 'success' ? 'bg-green-500 hover:bg-green-600 shadow-green-100' :
                     'bg-[#1E0B99] hover:bg-black shadow-blue-100'
                 }`}>
-                  Okay
+                  OKAY
                 </button>
               )}
             </div>

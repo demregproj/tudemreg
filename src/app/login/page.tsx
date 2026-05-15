@@ -1,140 +1,101 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isSignUp, setIsSignUp] = useState(false); // สลับโหมด ล็อกอิน <-> สมัครสมาชิก
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
   const router = useRouter();
+  const [studentId, setStudentId] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleAuth = async (e: React.FormEvent) => {
+  // ใหม! State สำหรับแจ้งเตือน
+  const [customAlert, setCustomAlert] = useState<{isOpen: boolean, type: 'success' | 'error', title: string, message: string, onConfirm?: () => void} | null>(null);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setErrorMsg("");
+    setIsLoading(true);
 
     try {
-      if (isSignUp) {
-        // โหมดสมัครสมาชิก
-        const { error } = await supabase.auth.signUp({ 
-          email, 
-          password 
-        });
-        if (error) throw error;
-        alert("🎉 สมัครสมาชิกสำเร็จ! (คุณสามารถล็อกอินได้เลย)");
-        setIsSignUp(false); // สลับกลับหน้าล็อกอิน
-        setPassword("");
-      } else {
-        // โหมดล็อกอิน
-        const { error } = await supabase.auth.signInWithPassword({ 
-          email, 
-          password 
-        });
-        if (error) throw error;
-        
-        // ล็อกอินสำเร็จ เด้งกลับไปหน้าแรก (ตารางเรียน)
-        router.push("/");
-        router.refresh(); 
+      const { data: user, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('student_id', studentId)
+        .eq('password', password)
+        .single();
+
+      if (error || !user) {
+        throw new Error("รหัสนักศึกษาหรือรหัสผ่านไม่ถูกต้อง");
       }
+
+      localStorage.setItem("regplan_user", JSON.stringify(user));
+      
+      setCustomAlert({
+        isOpen: true, type: 'success', title: 'เข้าสู่ระบบสำเร็จ!', message: `ยินดีต้อนรับ คุณ ${user.full_name}`,
+        onConfirm: () => { router.push("/plan"); router.refresh(); }
+      });
     } catch (error: any) {
-      setErrorMsg(error.message === "Invalid login credentials" 
-        ? "❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง" 
-        : `❌ ${error.message}`
-      );
+      setCustomAlert({ isOpen: true, type: 'error', title: 'เข้าสู่ระบบไม่สำเร็จ', message: error.message });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-[85vh] flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-md p-8 md:p-10 rounded-[2.5rem] border-2 border-gray-100 shadow-2xl relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="max-w-md w-full bg-white rounded-[2.5rem] p-10 shadow-2xl border-2 border-gray-100 relative overflow-hidden">
         
-        {/* ของตกแต่ง UI พื้นหลัง */}
         <div className="absolute top-0 left-0 w-full h-3 bg-[#1E0B99]"></div>
-        
+
         <div className="text-center mb-10">
-          <h1 className="text-4xl font-black italic tracking-tighter drop-shadow-sm mb-2">
-            <span className="text-[#FBBF24]">TUDEM</span>
-            <span className="text-[#1E0B99]">REG</span>
-            <span className="text-[#4ADE80] ml-1">✓</span>
+          <h1 className="text-4xl font-black italic tracking-tighter mb-2">
+            <span className="text-[#FBBF24]">REG</span><span className="text-[#1E0B99]">PLANing</span><span className="text-green-400 ml-1">✔</span>
           </h1>
-          <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">
-            {isSignUp ? "Create new account" : "Welcome back, Student"}
-          </p>
+          <p className="text-gray-400 font-bold text-xs uppercase tracking-widest">Student Login System</p>
         </div>
 
-        {errorMsg && (
-          <div className="mb-6 p-4 bg-red-50 border-2 border-red-200 rounded-xl text-red-600 text-sm font-bold text-center">
-            {errorMsg}
-          </div>
-        )}
-
-        <form onSubmit={handleAuth} className="space-y-5">
+        <form onSubmit={handleLogin} className="space-y-5">
           <div>
-            <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2 ml-1">Email</label>
-            <input 
-              type="email" 
-              required
-              placeholder="student@dome.tu.ac.th" 
-              className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl px-5 py-4 text-sm font-bold focus:border-[#1E0B99] focus:bg-white outline-none transition-all"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
+            <label className="text-xs font-black text-gray-500 uppercase ml-1">รหัสนักศึกษา</label>
+            <input type="text" required value={studentId} onChange={(e) => setStudentId(e.target.value)} className="w-full mt-2 bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl outline-none font-bold focus:border-[#1E0B99] transition-all" placeholder="6602xxxxxx" />
           </div>
 
           <div>
-            <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2 ml-1">Password</label>
-            <input 
-              type="password" 
-              required
-              placeholder="••••••••" 
-              minLength={6}
-              className="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl px-5 py-4 text-sm font-bold focus:border-[#1E0B99] focus:bg-white outline-none transition-all"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            <label className="text-xs font-black text-gray-500 uppercase ml-1">รหัสผ่าน</label>
+            <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full mt-2 bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl outline-none font-bold focus:border-[#1E0B99] transition-all" placeholder="••••••••" />
           </div>
 
-          <button 
-            type="submit" 
-            disabled={loading}
-            className={`w-full py-4 text-white font-black text-lg rounded-2xl shadow-lg transition-all mt-4 ${
-              loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#1E0B99] hover:bg-blue-900 shadow-blue-200/50'
-            }`}
-          >
-            {loading ? "กำลังโหลด..." : (isSignUp ? "สมัครสมาชิก" : "เข้าสู่ระบบ")}
+          <button type="submit" disabled={isLoading} className="w-full py-4 bg-[#1E0B99] text-white font-black text-lg rounded-2xl shadow-lg hover:-translate-y-1 transition-all disabled:bg-gray-400">
+            {isLoading ? "กำลังตรวจสอบ..." : "เข้าสู่ระบบ"}
           </button>
         </form>
-
-        <div className="mt-8 text-center border-t-2 border-gray-50 pt-6">
-          <p className="text-sm font-bold text-gray-500">
-            {isSignUp ? "มีบัญชีอยู่แล้ว?" : "ยังไม่มีบัญชีใช่ไหม?"}
-            <button 
-              onClick={() => {
-                setIsSignUp(!isSignUp);
-                setErrorMsg("");
-              }}
-              className="ml-2 text-[#1E0B99] hover:underline transition-all"
-            >
-              {isSignUp ? "เข้าสู่ระบบเลย" : "สมัครสมาชิก"}
-            </button>
-          </p>
+        
+        <div className="mt-8 pt-6 border-t-2 border-gray-50 text-center flex flex-col gap-4">
+          <p className="text-sm font-bold text-gray-500">ยังไม่มีบัญชีใช่ไหม? <Link href="/register" className="ml-2 text-[#1E0B99] hover:underline transition-all">สมัครสมาชิกที่นี่</Link></p>
+          <Link href="/" className="text-xs font-bold text-gray-400 hover:text-gray-800 transition-colors">← กลับไปหน้าจัดตารางเรียน</Link>
         </div>
-
-        {/* ปุ่มกลับหน้าแรก (เผื่ออยากกดกลับไปดูตารางโดยไม่ล็อกอิน) */}
-        <div className="mt-4 text-center">
-           <Link href="/" className="text-xs font-bold text-gray-400 hover:text-gray-800 transition-colors">
-              ← กลับไปหน้าจัดตารางเรียน
-           </Link>
-        </div>
-
       </div>
+
+      {/* 🟢 Custom Alert Modal */}
+      {customAlert && customAlert.isOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl max-w-sm w-full p-10 text-center animate-in fade-in zoom-in duration-200">
+            <div className={`mx-auto flex items-center justify-center h-20 w-20 rounded-full mb-6 ${customAlert.type === 'error' ? 'bg-red-100 text-red-500' : 'bg-green-100 text-green-500'}`}>
+              <span className="text-3xl">{customAlert.type === 'error' ? '❌' : '✅'}</span>
+            </div>
+            <h3 className="text-2xl font-black text-gray-900 mb-4">{customAlert.title}</h3>
+            <p className="text-sm font-bold text-gray-500 mb-8 bg-gray-50 p-4 rounded-2xl border border-gray-100">{customAlert.message}</p>
+            <button 
+              onClick={() => { if(customAlert.onConfirm) customAlert.onConfirm(); setCustomAlert(null); }} 
+              className={`w-full py-4 font-black rounded-xl text-white transition-all uppercase tracking-widest text-xs shadow-lg ${customAlert.type === 'error' ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}`}
+            >
+              OKAY
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
