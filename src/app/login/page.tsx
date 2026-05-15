@@ -1,3 +1,5 @@
+// src/app/login/page.tsx
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -50,9 +52,14 @@ export default function LoginPage() {
           });
           if (error) throw error;
 
-          // 🟢 เช็คจาก flag needsCurriculum แทน isNewUser
-          if (tuData.needsCurriculum) {
-            setSelectedCurrId(data.user.user_metadata.curriculum_id || "");
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("curriculum_id")
+            .eq("id", data.user.id)
+            .single();
+
+          if (!profile?.curriculum_id) {
+            setSelectedCurrId(tuData.suggestedCurrId || "");
             setCurrentUser(data.user);
             setShowConfirmModal(true);
           } else {
@@ -66,8 +73,13 @@ export default function LoginPage() {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         
-        // 🟢 สำหรับ General Login: ถ้าไม่มี curriculum_id ก็ให้เด้ง Modal เหมือนกัน
-        if (!data.user.user_metadata?.curriculum_id) {
+        const { data: profile } = await supabase
+            .from("profiles")
+            .select("curriculum_id")
+            .eq("id", data.user.id)
+            .single();
+
+        if (!profile?.curriculum_id) {
           setSelectedCurrId("");
           setCurrentUser(data.user);
           setShowConfirmModal(true);
@@ -95,13 +107,14 @@ export default function LoginPage() {
 
       if (error) throw error;
 
-      // อัปเดต metadata ใน auth ด้วยเพื่อให้ข้อมูลตรงกัน
       await supabase.auth.updateUser({
         data: { curriculum_id: selectedCurrId }
       });
 
-      localStorage.setItem("regplan_user", JSON.stringify(currentUser));
+      const { data: { user } } = await supabase.auth.getUser();
+      localStorage.setItem("regplan_user", JSON.stringify(user || currentUser));
       window.location.href = "/";
+      
     } catch (err: any) {
       setAlert({ type: 'error', title: 'บันทึกไม่สำเร็จ', message: err.message });
     } finally {
@@ -140,7 +153,19 @@ export default function LoginPage() {
             <label className="text-xs font-black text-gray-500 uppercase ml-1">รหัสผ่าน</label>
             <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full mt-2 bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl outline-none font-bold focus:border-[#1E0B99]" placeholder="••••••••" />
           </div>
-          <button type="submit" disabled={isLoading} className={`w-full py-4 text-white font-black text-lg rounded-2xl shadow-lg transition-all ${loginMode === 'TU' ? 'bg-red-600' : 'bg-[#1E0B99]'}`}>{isLoading ? "กำลังตรวจสอบ..." : "เข้าสู่ระบบ"}</button>
+          
+          {/* 🟢 ปุ่มเข้าสู่ระบบที่อัปเดต Hover Interaction และข้อความใหม่ */}
+          <button 
+            type="submit" 
+            disabled={isLoading} 
+            className={`w-full py-4 text-white font-black text-lg rounded-2xl shadow-lg transition-all hover:-translate-y-1 hover:shadow-xl ${
+              loginMode === 'TU' 
+              ? 'bg-red-600 hover:bg-red-800' 
+              : 'bg-[#1E0B99] hover:bg-black'
+            }`}
+          >
+            {isLoading ? "กำลังตรวจสอบ..." : "เข้าสู่ระบบด้วย TU-Account"}
+          </button>
         </form>
         {alert && <div className="mt-6 p-4 rounded-xl text-sm font-bold text-center bg-red-50 text-red-700 border border-red-200"><p>{alert.message}</p></div>}
       </div>

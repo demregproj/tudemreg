@@ -54,13 +54,9 @@ export async function POST(request: Request) {
       const userExists = existingUsers.users.find((u: any) => u.email === tuData.email);
 
       const autoCurrId = await findBestCurriculum(supabaseAdmin, tuData.username, tuData.faculty, tuData.department);
-      
-      // 🟢 เปลี่ยนจาก isNewUser เป็น needsCurriculum
-      let needsCurriculum = false;
 
       if (!userExists) {
-        // กรณี User ใหม่
-        needsCurriculum = true;
+        // กรณี User ใหม่ จะไม่ใส่ curriculum_id ตรงนี้ เพื่อให้ในตาราง profiles เป็นค่าว่าง (รอยืนยัน)
         await supabaseAdmin.auth.admin.createUser({
           email: tuData.email,
           password: syncPassword,
@@ -68,20 +64,11 @@ export async function POST(request: Request) {
           user_metadata: {
             full_name: tuData.displayname_th,
             faculty: tuData.faculty,
-            student_id: tuData.username,
-            curriculum_id: autoCurrId 
+            student_id: tuData.username
           }
         });
       } else {
-        // 🟢 กรณี User เก่า: เช็คว่ามี curriculum_id ใน metadata หรือยัง
-        if (!userExists.user_metadata?.curriculum_id) {
-          needsCurriculum = true;
-          // อัปเดต Metadata ให้มีค่าที่ระบบเลือกให้เบื้องต้น (เพื่อให้ Frontend นำไปแสดงใน Modal)
-          await supabaseAdmin.auth.admin.updateUserById(userExists.id, { 
-            user_metadata: { ...userExists.user_metadata, curriculum_id: autoCurrId } 
-          });
-        }
-        
+        // กรณี User เก่า อัปเดตแค่รหัสผ่าน
         await supabaseAdmin.auth.admin.updateUserById(userExists.id, { 
           password: syncPassword 
         });
@@ -91,7 +78,7 @@ export async function POST(request: Request) {
         success: true,
         email: tuData.email,
         syncPassword: syncPassword,
-        needsCurriculum: needsCurriculum // 🟢 ส่ง flag ตัวใหม่กลับไป
+        suggestedCurrId: autoCurrId // 🟢 ส่งหลักสูตรที่ระบบเดาให้กลับไปที่หน้าเว็บ
       });
 
     } else {
