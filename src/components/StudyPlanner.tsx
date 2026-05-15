@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/lib/supabase";
-import html2canvas from "html2canvas"; // 🟢 Import html2canvas
+import html2canvas from "html2canvas";
 
 // --- Types ---
 type Course = {
@@ -26,10 +26,12 @@ type Semester = {
   courses: PlannedCourse[];
 };
 
+// 🟢 เพิ่ม academic_year ใน Type
 type Curriculum = {
   id: string;
   name: string;
   total_credits: number;
+  academic_year?: number; 
 };
 
 type Requirement = {
@@ -69,14 +71,15 @@ export default function StudyPlanner() {
   const [referenceCurriculumId, setReferenceCurriculumId] = useState<string>("");
   const [isNoReference, setIsNoReference] = useState<boolean>(false);
 
-  const [customCourseForm, setCustomCourseForm] = useState({ code: "", name: "", credits: 3 });
+  // Searchable Dropdown States
+  const [isCurrOpen, setIsCurrOpen] = useState(false);
+  const [currSearch, setCurrSearch] = useState("");
 
+  const [customCourseForm, setCustomCourseForm] = useState({ code: "", name: "", credits: 3 });
   const [draggedItem, setDraggedItem] = useState<{ semId: string, courseCode: string } | null>(null);
   const [dragOverSemId, setDragOverSemId] = useState<string | null>(null);
-
   const [customAlert, setCustomAlert] = useState<{isOpen: boolean, type: 'success' | 'error' | 'warning', title: string, message: string} | null>(null);
 
-  // 🟢 Ref สำหรับการอ้างอิงพื้นที่ที่จะแคปเจอร์เป็นรูปภาพ
   const plannerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -87,7 +90,7 @@ export default function StudyPlanner() {
         const [resCourses, resPrereqs, resCurriculums] = await Promise.all([
           supabase.from("master_courses").select("*"),
           supabase.from("prerequisites").select("*"),
-          supabase.from("curriculums").select("*")
+          supabase.from("curriculums").select("*").order('academic_year', { ascending: false })
         ]);
 
         if (resCurriculums.data) setCurriculumsList(resCurriculums.data);
@@ -115,7 +118,7 @@ export default function StudyPlanner() {
 
           if (resProfile.data) {
             setUserProfile(resProfile.data);
-            setReferenceCurriculumId(resProfile.data.curriculum_id);
+            setReferenceCurriculumId(resProfile.data.curriculum_id || "");
           }
 
           if (resSavedPlan.data && resSavedPlan.data.length > 0) {
@@ -164,6 +167,16 @@ export default function StudyPlanner() {
   }, [referenceCurriculumId, isNoReference]);
 
   const activeCurriculum = curriculumsList.find(c => c.id === referenceCurriculumId);
+  
+  // 🟢 แก้ไขการค้นหาหลักสูตรให้รองรับการค้นหาด้วยปี
+  const filteredCurriculums = useMemo(() => {
+    const term = currSearch.toLowerCase();
+    return curriculumsList.filter(c => 
+      c.name.toLowerCase().includes(term) || 
+      c.academic_year?.toString().includes(term)
+    );
+  }, [curriculumsList, currSearch]);
+
   const activeCategories = activeRequirements.length > 0 
     ? activeRequirements.map(r => r.category_name) 
     : ["รายวิชาพื้นฐาน", "วิชาศึกษาทั่วไป", "วิชาแกน", "วิชาเลือกเสรี"];
@@ -329,23 +342,19 @@ export default function StudyPlanner() {
     }
   };
 
-  // 🟢 ฟังก์ชันสำหรับ Export เป็นรูปภาพ
   const handleExportImage = async () => {
     if (!plannerRef.current) return;
-    
     try {
       const canvas = await html2canvas(plannerRef.current, {
         scale: 2, 
         backgroundColor: "#FFFFFF", 
         useCORS: true, 
       });
-      
       const image = canvas.toDataURL("image/png");
       const link = document.createElement("a");
       link.href = image;
       link.download = `REGPLANing-StudyPlan-${new Date().getTime()}.png`;
       link.click();
-      
       setCustomAlert({ isOpen: true, type: "success", title: "เซฟรูปสำเร็จ!", message: "ระบบได้บันทึกแผนการเรียนเป็นรูปภาพลงในเครื่องของคุณแล้วครับ" });
     } catch (err) {
       console.error("Export Failed:", err);
@@ -358,50 +367,67 @@ export default function StudyPlanner() {
   return (
     <div className="max-w-6xl mx-auto p-6 md:p-10 font-sans text-gray-900">
       
-      {/* 🟢 ปุ่มควบคุมด้านบน */}
       <div className="flex justify-end gap-3 mb-6">
-        <button 
-          onClick={handleExportImage}
-          className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md flex items-center gap-2 bg-[#1E0B99] text-white hover:bg-black hover:-translate-y-1"
-        >
-          📸 เซฟเป็นรูปภาพ
-        </button>
-        <button 
-          onClick={handleSavePlan} 
-          disabled={isSaving} 
-          className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm flex items-center gap-2 ${
-            isSaving ? "bg-gray-100 text-gray-400" : "bg-white border-2 border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white"
-          }`}
-        >
+        <button onClick={handleExportImage} className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md flex items-center gap-2 bg-[#1E0B99] text-white hover:bg-black hover:-translate-y-1">📸 เซฟเป็นรูปภาพ</button>
+        <button onClick={handleSavePlan} disabled={isSaving} className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm flex items-center gap-2 ${isSaving ? "bg-gray-100 text-gray-400" : "bg-white border-2 border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white"}`}>
           {isSaving ? "SAVING..." : "💾 บันทึกแผนการเรียน"}
         </button>
       </div>
 
-      {/* 🟢 พื้นที่สำหรับแคปเจอร์รูป */}
       <div ref={plannerRef} className="bg-white p-4 md:p-8 rounded-[2rem]">
         
-        {/* Header สวยๆ ที่จะติดไปในรููปภาพด้วย */}
         <div className="mb-10 flex flex-col md:flex-row justify-between items-start gap-6">
           <div>
             <h1 className="text-5xl font-black mb-6 tracking-tight border-b-[6px] border-gray-900 inline-block pb-2">วางแผนการเรียน</h1>
             <div className="text-xl font-bold space-y-2 text-gray-900">
               <p>คุณ{userProfile?.full_name}</p>
-              <p>{userProfile?.faculty} {activeCurriculum?.name}</p>
+              <p>{userProfile?.faculty} {activeCurriculum ? `${activeCurriculum.name} (ปี ${activeCurriculum.academic_year})` : ""}</p>
             </div>
 
-            <div className="mt-8 bg-gray-50/50 p-4 rounded-2xl border border-gray-100" data-html2canvas-ignore>
+            {/* 🟢 Searchable Dropdown ปรับปรุงการแสดงผล "ปี" */}
+            <div className="mt-8 bg-gray-50/50 p-6 rounded-3xl border border-gray-100 relative" data-html2canvas-ignore>
               <p className="text-lg font-bold text-gray-900 mb-3">หลักสูตรที่ต้องการใช้อ้างอิง</p>
               <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                <select
-                  value={referenceCurriculumId}
-                  onChange={(e) => { setReferenceCurriculumId(e.target.value); setIsNoReference(false); }}
-                  disabled={isNoReference}
-                  className="w-full sm:w-80 bg-white border border-gray-300 rounded-lg py-2.5 px-4 text-sm font-bold text-gray-800"
-                >
-                  {curriculumsList.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
+                <div className="relative flex-1">
+                  <div 
+                    onClick={() => !isNoReference && setIsCurrOpen(!isCurrOpen)}
+                    className={`w-full bg-white border border-gray-300 rounded-xl py-3 px-4 text-sm font-bold flex justify-between items-center ${isNoReference ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                  >
+                    <span className={referenceCurriculumId ? "text-gray-900" : "text-gray-400"}>
+                      {activeCurriculum ? `${activeCurriculum.name} (ปี ${activeCurriculum.academic_year})` : "คลิกเพื่อเลือกหลักสูตร..."}
+                    </span>
+                    <span>▼</span>
+                  </div>
+
+                  {isCurrOpen && (
+                    <div className="absolute left-0 right-0 mt-2 bg-white border border-gray-200 rounded-2xl shadow-2xl z-[150] overflow-hidden">
+                      <div className="p-3 border-b">
+                        <input 
+                          type="text"
+                          placeholder="พิมพ์ชื่อหรือปีหลักสูตร (เช่น 66)..."
+                          className="w-full bg-gray-50 border border-gray-200 p-2.5 rounded-xl text-sm font-bold outline-none focus:border-[#1E0B99]"
+                          value={currSearch}
+                          onChange={(e) => setCurrSearch(e.target.value)}
+                          autoFocus
+                        />
+                      </div>
+                      <div className="max-h-60 overflow-y-auto">
+                        {filteredCurriculums.map(c => (
+                          <div 
+                            key={c.id} 
+                            onClick={() => { setReferenceCurriculumId(c.id); setIsCurrOpen(false); setCurrSearch(""); }}
+                            className="p-4 text-sm font-bold text-gray-700 hover:bg-[#1E0B99] hover:text-white cursor-pointer transition-colors flex justify-between"
+                          >
+                            <span>{c.name}</span>
+                            <span className="opacity-50">ปี {c.academic_year}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
                 <label className="flex items-center gap-2 cursor-pointer text-sm font-bold">
-                  <input type="checkbox" checked={isNoReference} onChange={(e) => setIsNoReference(e.target.checked)} className="w-5 h-5 accent-gray-900" />
+                  <input type="checkbox" checked={isNoReference} onChange={(e) => { setIsNoReference(e.target.checked); if(e.target.checked) setIsCurrOpen(false); }} className="w-5 h-5 accent-gray-900" />
                   ไม่ต้องการอ้างอิง
                 </label>
               </div>
@@ -420,7 +446,7 @@ export default function StudyPlanner() {
                 {isComplete ? '🎉 STRUCTURE COMPLETE!' : `REMAINING: ${remainingTotal} CREDITS`}
               </h3>
               <span className="bg-gray-900 text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-widest self-start sm:self-auto">
-                โครงสร้างหลักสูตร
+                โครงสร้าง {activeCurriculum?.name} (ปี {activeCurriculum?.academic_year})
               </span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -481,16 +507,15 @@ export default function StudyPlanner() {
                         <p className="text-xs font-bold text-gray-600 leading-tight mb-4 flex-1 pr-2 pointer-events-none">{course.name}</p>
                         <div className="mb-3">
                           <select 
-                            value={course.user_type} 
+                            value={course.user_type || ""} 
                             onChange={(e) => handleTypeChange(semester.id, course.code, e.target.value)}
                             className={`w-full text-[11px] font-bold border rounded-lg p-2.5 outline-none cursor-pointer transition-colors focus:ring-2 bg-white/70 ${theme}`}
-                            data-html2canvas-ignore // 🟢 ซ่อน dropdown ตอนเซฟภาพ
+                            data-html2canvas-ignore
                           >
-                            <option value="">-- เลือกหมวดหมู่ --</option>
+                            <option value="" disabled>-- เลือกหมวดหมู่ --</option>
                             {activeCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                             <option value="อื่นๆ">อื่นๆ</option>
                           </select>
-                          {/* 🟢 โชว์ text ธรรมดาตอนเซฟภาพแทน dropdown */}
                           <div className="hidden text-[11px] font-bold mt-1" data-html2canvas-show>
                              หมวด: {course.user_type || "ไม่ได้เลือก"}
                           </div>
@@ -513,7 +538,6 @@ export default function StudyPlanner() {
           ))}
         </div>
         
-        {/* 🟢 ลายน้ำแบรนด์ที่จะติดไปกับรูปภาพ */}
         <div className="hidden mt-8 pt-4 border-t-2 border-gray-100 flex justify-between items-center" data-html2canvas-show>
            <span className="text-sm font-bold text-gray-400 uppercase">Generated by</span>
            <span className="text-[#1E0B99] font-black italic text-xl tracking-tighter">REG<span className="text-gray-900">PLANing</span> <span className="text-green-500">✔</span></span>
@@ -569,7 +593,6 @@ export default function StudyPlanner() {
                   </button>
                 ))}
 
-                {/* 📝 ส่วนเพิ่มวิชาเอง (Custom Course Form) */}
                 <div className="mt-8 pt-8 border-t-2 border-dashed border-gray-100">
                   <p className="text-sm font-black text-gray-400 mb-4 uppercase italic">หาไม่เจอ? เพิ่มวิชาเองได้ที่นี่</p>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -626,7 +649,6 @@ export default function StudyPlanner() {
         </div>
       )}
 
-      {/* 🟢 Custom Alert Modal สำหรับหน้าวางแผน */}
       {customAlert && customAlert.isOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
           <div className="bg-white rounded-[2.5rem] shadow-2xl max-w-sm w-full p-10 text-center animate-in fade-in zoom-in duration-200">
@@ -645,7 +667,6 @@ export default function StudyPlanner() {
         </div>
       )}
 
-      {/* สไตล์ CSS สำหรับควบคุม html2canvas (ซ่อนตอนแสดงผล โชว์ตอนปริ้นท์) */}
       <style dangerouslySetInnerHTML={{__html: `
         [data-html2canvas-show] { display: none !important; }
         .html2canvas-container [data-html2canvas-show] { display: flex !important; }

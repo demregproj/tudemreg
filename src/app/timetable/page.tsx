@@ -8,6 +8,7 @@ export default async function TimetablePage() {
   
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
+      {/* ❌ นำ Navbar ออกแล้วเพราะมีอยู่ใน layout.tsx หลัก */}
       <div className="py-8">
         <CourseManager allCourses={courses || []} />
       </div>

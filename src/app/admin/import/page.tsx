@@ -25,11 +25,10 @@ export default function CSVImportPage() {
     }
   };
 
-  // 🟢 ฟังก์ชันช่วยกรองข้อมูลที่ซ้ำกันในไฟล์ CSV (ดึงเอาบรรทัดล่าสุดมาใช้)
   const deduplicate = (arr: any[], keyFn: (item: any) => string) => {
     const map = new Map();
     arr.forEach(item => {
-      map.set(keyFn(item), item); // ถ้าเจอคีย์ซ้ำ มันจะเอาข้อมูลบรรทัดใหม่ทับบรรทัดเก่า
+      map.set(keyFn(item), item);
     });
     return Array.from(map.values());
   };
@@ -59,40 +58,25 @@ export default function CSVImportPage() {
         const validData = data.filter(item => validCodes.has(item.course_code));
         const skippedCount = originalCount - validData.length;
 
-        if (validData.length === 0) throw new Error(`ไม่พบวิชาในระบบเลย (ข้าม ${skippedCount} รายการ) กรุณาอัปเดต Master Courses ก่อนครับ`);
+        if (validData.length === 0) throw new Error(`ไม่พบวิชาในระบบเลย กรุณาอัปเดต Master Courses ก่อนครับ`);
 
-        setStatus(`กำลังอัปเดตตารางเรียน (ข้ามวิชาที่ไม่มีในระบบ ${skippedCount} รายการ)...`);
+        setStatus(`กำลังอัปเดตตารางเรียน...`);
         const courseCodes = Array.from(new Set(validData.map(item => item.course_code)));
         await supabase.from("term_sections").delete().in("course_code", courseCodes);
         const { error } = await supabase.from("term_sections").insert(validData);
         if (error) throw error;
 
-        setStatus(`✅ อัปเดตตารางเรียน ${validData.length} รายการ (ตัดข้อมูลที่วิชาหายไป ${skippedCount} รายการ)`);
+        setStatus(`✅ อัปเดตตารางเรียน ${validData.length} รายการ สำเร็จ!`);
       }
       else if (headers.includes("prereq_code")) {
         // --- ตาราง prerequisites ---
-        setStatus("กำลังตรวจสอบข้อมูลวิชาหลักในระบบ...");
-        const { data: existingCourses, error: fetchErr } = await supabase.from("master_courses").select("course_code");
-        if (fetchErr) throw fetchErr;
-        const validCodes = new Set(existingCourses.map(c => c.course_code));
-
-        let uniqueData = deduplicate(data, item => `${item.course_code}-${item.prereq_code}`);
-        const originalCount = uniqueData.length;
-        
-        // 🟢 กรองเอาเฉพาะข้อมูลที่ทั้ง "รหัสวิชา" และ "วิชาบังคับก่อน" มีอยู่จริงในระบบ
-        uniqueData = uniqueData.filter(item => validCodes.has(item.course_code) && validCodes.has(item.prereq_code));
-        const skippedCount = originalCount - uniqueData.length;
-
-        if (uniqueData.length === 0) throw new Error(`ไม่พบวิชาในระบบเลย (ข้าม ${skippedCount} รายการ) กรุณาอัปเดต Master Courses ก่อนครับ`);
-
-        setStatus(`กำลังอัปเดตวิชาบังคับก่อน (ข้ามวิชาที่ไม่มีในระบบ ${skippedCount} รายการ)...`);
-        const { error } = await supabase.from("prerequisites").upsert(uniqueData, { onConflict: "course_code,prereq_code" });
+        setStatus("กำลังอัปเดตวิชาบังคับก่อน...");
+        const { error } = await supabase.from("prerequisites").upsert(data, { onConflict: "course_code,prereq_code" });
         if (error) throw error;
-
-        setStatus(`✅ อัปเดตวิชาบังคับก่อน ${uniqueData.length} รายการ (ตัดข้อมูลที่วิชาหายไป ${skippedCount} รายการ)`);
+        setStatus(`✅ อัปเดตวิชาบังคับก่อน ${data.length} รายการ สำเร็จ!`);
       }
       else if (headers.includes("total_credits") && !headers.includes("category_name")) {
-        // --- ตาราง curriculums ---
+        // --- ตาราง curriculums (รองรับคอลัมน์ academic_year) ---
         setStatus("กำลังอัปเดตข้อมูลหลักสูตร (Curriculums)...");
         const uniqueData = deduplicate(data, item => item.id);
         const { error } = await supabase.from("curriculums").upsert(uniqueData, { onConflict: "id" });
@@ -101,23 +85,10 @@ export default function CSVImportPage() {
       }
       else if (headers.includes("category_name")) {
         // --- ตาราง curriculum_requirements ---
-        setStatus("กำลังตรวจสอบข้อมูลหลักสูตรในระบบ...");
-        const { data: existingCurriculums, error: fetchErr } = await supabase.from("curriculums").select("id");
-        if (fetchErr) throw fetchErr;
-        const validCurriculums = new Set(existingCurriculums.map(c => c.id));
-
-        let uniqueData = deduplicate(data, item => `${item.curriculum_id}-${item.category_name}`);
-        const originalCount = uniqueData.length;
-        uniqueData = uniqueData.filter(item => validCurriculums.has(item.curriculum_id));
-        const skippedCount = originalCount - uniqueData.length;
-
-        if (uniqueData.length === 0) throw new Error(`ไม่พบหลักสูตรในระบบเลย (ข้าม ${skippedCount} รายการ) กรุณาอัปเดต Curriculums ก่อนครับ`);
-
-        setStatus(`กำลังอัปเดตโครงสร้างหน่วยกิต (ข้ามหลักสูตรที่ไม่มีในระบบ ${skippedCount} รายการ)...`);
-        const { error } = await supabase.from("curriculum_requirements").upsert(uniqueData, { onConflict: "curriculum_id,category_name" });
+        setStatus("กำลังอัปเดตโครงสร้างหน่วยกิต...");
+        const { error } = await supabase.from("curriculum_requirements").upsert(data, { onConflict: "curriculum_id,category_name" });
         if (error) throw error;
-
-        setStatus(`✅ อัปเดตโครงสร้างหน่วยกิต ${uniqueData.length} รายการ (ตัดข้อมูลที่หลักสูตรหายไป ${skippedCount} รายการ)`);
+        setStatus(`✅ อัปเดตโครงสร้างหน่วยกิต ${data.length} รายการ สำเร็จ!`);
       }
       else {
         throw new Error("ระบบไม่พบหัวตารางที่คุ้นเคยในไฟล์ CSV นี้ กรุณาตรวจสอบชื่อคอลัมน์ครับ");
@@ -151,7 +122,7 @@ export default function CSVImportPage() {
         />
 
         {status && (
-          <div className={`mb-8 p-5 rounded-2xl border-2 text-sm font-bold animate-in fade-in slide-in-from-top-1 ${status.includes('✅') ? 'bg-green-50 border-green-100 text-green-700' : status.includes('❌') ? 'bg-red-50 border-red-100 text-red-700' : 'bg-blue-50 border-blue-100 text-blue-700'}`}>
+          <div className={`mb-8 p-5 rounded-2xl border-2 text-sm font-bold ${status.includes('✅') ? 'bg-green-50 border-green-100 text-green-700' : status.includes('❌') ? 'bg-red-50 border-red-100 text-red-700' : 'bg-blue-50 border-blue-100 text-blue-700'}`}>
              {status}
           </div>
         )}
