@@ -34,7 +34,7 @@ export default function LandingPage() {
           </h2>
           <p className="text-xl md:text-2xl text-gray-200 font-bold mb-12 max-w-3xl mx-auto leading-relaxed">
             เว็บไซต์ช่วยจัดตารางเรียนและวางแผนการศึกษาตลอดหลักสูตร <br/>
-            ออกแบบมาเพื่อนักศึกษามธ.โดยเฉพาะ
+            <span className="text-3xl font-black mb-12 text-center uppercase italic">เพื่อเพื่อนนักศึกษาธรรมศาสตร์</span>
           </p>
           
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
@@ -115,19 +115,39 @@ export default function LandingPage() {
         <div className="space-y-4">
           <div className="bg-white p-8 rounded-3xl border-2 border-gray-100 shadow-sm">
             <h6 className="font-black text-[#1E0B99] text-xl mb-3 italic">Q: ข้อมูลวิชาอัปเดตแค่ไหน?</h6>
-            <p className="font-bold text-gray-500">A: ข้อมูลจะถูกดึงมาจากประกาศของมหาวิทยาลัยและอัปเดตอย่างต่อเนื่องผ่านระบบผู้ดู (ไม่ใช่การอัพเดตเรียลไทม์)</p>
+            <p className="font-bold text-gray-500">A: ข้อมูลจะถูกดึงมาจากประกาศของมหาวิทยาลัยและอัปเดตอย่างต่อเนื่องโดยแอดมิน (ไม่ใช่การอัพเดตเรียลไทม์) ทั้งนี้แนะนำให้ตรวจสอบความถูกต้องของข้อมูลอีกครั้งก่อนนำไปใช้อ้างอิงจริง</p>
+          </div>
+          <div className="bg-white p-8 rounded-3xl border-2 border-gray-100 shadow-sm">
+            <h6 className="font-black text-[#1E0B99] text-xl mb-3 italic">Q: ยังต้องลงทะเบียนเรียนผ่าน reg tu หรือไม่?</h6>
+            <p className="font-bold text-gray-500">A: จำเป็น! เว็บไซต์ของเราเป็นเพียงเครื่องมือในการวางแผนการเรียน และไม่สามารถแทนที่การลงทะเบียนเรียนในระบบ reg tu</p>
+          </div>
+          <div className="bg-white p-8 rounded-3xl border-2 border-gray-100 shadow-sm">
+            <h6 className="font-black text-[#1E0B99] text-xl mb-3 italic">Q: ยังต้องขอโควตาหรือไม่?</h6>
+            <p className="font-bold text-gray-500">A: จำเป็น! เว็บไซต์ของเราเป็นเพียงเครื่องมือในการวางแผนการเรียน ไม่มีการยื่นคำร้องขอโควตา โดยผู้ใช้ต้องดำเนินการขอโควตาผ่านคณะต่างๆ ด้วยตนเอง</p>
           </div>
           <div className="bg-white p-8 rounded-3xl border-2 border-gray-100 shadow-sm">
             <h6 className="font-black text-[#1E0B99] text-xl mb-3 italic">Q: จำเป็นต้องสมัครสมาชิกหรือไม่?</h6>
-            <p className="font-bold text-gray-500">A: สามารถใช้งานได้ทันทีผ่าน Guest Mode แต่ข้อมูลจะไม่ถูกบันทึก หากต้องการบันทึกข้อมูลต้องทำการสมัครสมาชิก</p>
+            <p className="font-bold text-gray-500">A: สามารถใช้งานได้ทันทีผ่าน Guest Mode แต่ข้อมูลจะไม่ถูกบันทึก หากต้องการบันทึกข้อมูลต้องทำการเข้าสู่ระบบ โดยหากเป็นนักศึกษามธ. สามารถเข้าใช้งานได้ทันทีผ่าน TU-Account</p>
           </div>
           <div className="bg-white p-8 rounded-3xl border-2 border-gray-100 shadow-sm">
             <h6 className="font-black text-[#1E0B99] text-xl mb-3 italic">Q: ข้อมูลบัญชีเชื่อมกับระบบของมหาวิทยาลัยไหม?</h6>
-            <p className="font-bold text-gray-500">A: ข้อมูลไม่ได้เชื่อมต่อกับระบบของมหาวิทยาลัย ผู้ใช้จะต้องสร้างบัญชีเองโดยที่ไม่มีการดึงข้อมูลจากระบบของมหาวิทยาลัย</p>
+            <p className="font-bold text-gray-500">A: ข้อมูลไม่ได้เชื่อมต่อกับระบบของมหาวิทยาลัยโดยตรง การ login ด้วย TU-Account เป็นเพียงการยืนยันตัวตนผ่านระบบ API ของมหาวิทยาลัยเท่านั้น ไม่มีการเก็บข้อมูลส่วนตัวของผู้ใช้</p>
           </div>
           <div className="bg-white p-8 rounded-3xl border-2 border-gray-100 shadow-sm">
-            <h6 className="font-black text-[#1E0B99] text-xl mb-3 italic">Q: ข้อมูลรหัสนักศึกษาจะถูกเก็บหรือไม่?</h6>
-            <p className="font-bold text-gray-500">A: ข้อมูลรหัสนักศึกษาจะถูกเก็บในฐานข้อมูลเพื่อใช้ในการเรียกดูแผนการเรียนส่วนบุคคลของคุณเท่านั้น และจะไม่ถูกเผยแพร่หรือใช้งานอื่นใด ทั้งนี้เราแนะนำให้ใช้รหัสผ่านเป็นคนละชุดกับ reg tu</p>
+            <h6 className="font-black text-[#1E0B99] text-xl mb-3 italic">Q: ข้อมูล TU-Account หรือรหัสผ่านจะถูกเก็บหรือไม่?</h6>
+            <p className="font-bold text-gray-500">A: การเข้าสู่ระบบผ่าน TU-Account ข้อมูลรหัสนักศึกษาจะไม่ถูกเก็บในฐานข้อมูลของเรา การ login ด้วย TU-Account เป็นเพียงการยืนยันตัวตนผ่าน API ของมหาวิทยาลัยเท่านั้น ผู้พัฒนาจะไม่ได้รับข้อมูลส่วนตัวของผู้ใช้โดยตรงรวมถึงรหัสผ่าน TU-Account เช่นกัน</p>
+          </div>
+          <div className="bg-white p-8 rounded-3xl border-2 border-gray-100 shadow-sm">
+            <h6 className="font-black text-[#1E0B99] text-xl mb-3 italic">Q: เว็บไซต์นี้เป็นเว็บไซต์ทางการหรือไม่?</h6>
+            <p className="font-bold text-gray-500">A: ไม่ใช่! เว็บไซต์นี้เป็นเว็บไซต์ที่พัฒนาโดยนักศึกษาเพื่อประโยชน์ในการช่วยวางแผนการเรียนเท่านั้น ไม่ใช่เว็บไซต์ทางการของมหาวิทยาลัยและไม่มีส่วนเกี่ยวข้องกับมหาวิทยาลัย</p>
+          </div>
+          <div className="bg-white p-8 rounded-3xl border-2 border-gray-100 shadow-sm">
+            <h6 className="font-black text-[#1E0B99] text-xl mb-3 italic">Q: ข้อมูลบนเว็บไซต์น่าเชื่อถือหรือไม่?</h6>
+            <p className="font-bold text-gray-500">A: เว็บไซต์ของเราเป็นเพียงเครื่องมือในการวางแผนการเรียนโดยอ้างอิงจากข้อมูลประกาศของมหาวิทยาลัย อย่างไรก็ตาม ผู้ใช้ควรตรวจสอบข้อมูลให้แน่ใจก่อนนำไปใช้ และผู้พัฒนาไม่มีส่วนรับผิดชอบต่อความถูกต้องของข้อมูลกรณีที่ผู้ใช้นำไปใช้โดยไม่ตรวจสอบอีกครั้ง</p>
+          </div>
+          <div className="bg-white p-8 rounded-3xl border-2 border-gray-100 shadow-sm">
+            <h6 className="font-black text-[#1E0B99] text-xl mb-3 italic">Q: ผู้พัฒนาเว็บไซต์นี้คือใคร และติดต่อได้อย่างไร?</h6>
+            <p className="font-bold text-gray-500">A: เราคือกลุ่มนักศึกษาที่พัฒนาเว็บไซต์นี้ขึ้นมาเพื่อประโยชน์ในการใช้งานของนักศึกษาทุนคน สามารถติดต่อเราได้ที่ demreg.proj@gmail.com</p>
           </div>
         </div>
       </section>
