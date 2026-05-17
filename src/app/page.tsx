@@ -158,10 +158,18 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-16 mb-16">
             <div>
               <h4 className="text-xl font-black mb-8 uppercase border-l-4 border-[#FBBF24] pl-4 italic">นโยบายความเป็นส่วนตัว (PDPA)</h4>
-              <p className="text-sm text-gray-400 font-bold leading-relaxed">
-                เราจัดเก็บข้อมูลส่วนบุคคลได้แก่ชื่อ คณะ และรหัสปีที่เข้าศึกษา (69XXX) เพื่อยืนยันตัวตนและอ้างอิงหลักสูตรเท่านั้น โดยข้อมูลทั้งหมดจะถูกเก็บเป็นความลับในฐานข้อมูลที่ปลอดภัย 
-                และจะไม่มีการเผยแพร่หรือนำไปใช้งานเพื่อวัตถุประสงค์อื่นแต่อย่างใด หากคุณมีคำถามหรือข้อกังวลเกี่ยวกับข้อมูลส่วนบุคคลของคุณ สามารถติดต่อกับผู้พัฒนาเพื่อจัดการข้อมูลได้ทันที
-              </p>
+              
+              {/* 🟢 ส่วนที่ปรับแก้ข้อความให้สั้นลงและเพิ่ม Link */}
+              <div className="text-sm text-gray-400 font-bold leading-relaxed">
+                <p className="mb-4">
+                  เราให้ความสำคัญกับการปกป้องข้อมูลส่วนบุคคลของคุณ ข้อมูลที่จัดเก็บจะถูกใช้เพื่อการบริหารจัดการแผนการเรียนส่วนบุคคลของคุณเท่านั้น
+                </p>
+                <Link href="/pdpa" className="text-[#FBBF24] hover:text-white transition-colors inline-flex items-center gap-1.5 underline underline-offset-4">
+                  อ่านนโยบายความเป็นส่วนตัวฉบับเต็ม
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                </Link>
+              </div>
+
             </div>
             <div className="md:text-right">
               <h4 className="text-xl font-black mb-8 uppercase border-r-4 border-[#FBBF24] pr-4 italic text-white">ติดต่อผู้พัฒนา</h4>

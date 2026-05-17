@@ -17,7 +17,25 @@ export default function CSVImportPage() {
         header: true,
         skipEmptyLines: true,
         complete: (results) => {
-          setData(results.data);
+          // 🟢 1. สร้างฟังก์ชันปรับ Format วันที่ (tue, TUE, Tuesday -> Tue)
+          const formatDay = (dayStr: string) => {
+            if (!dayStr) return dayStr;
+            // ลบช่องว่างและตัดมาแค่ 3 ตัวอักษรแรก
+            const shortDay = dayStr.trim().substring(0, 3); 
+            // ตัวแรกพิมพ์ใหญ่ + ตัวที่เหลือพิมพ์เล็ก
+            return shortDay.charAt(0).toUpperCase() + shortDay.slice(1).toLowerCase();
+          };
+
+          // 🟢 2. วนลูปทำความสะอาดข้อมูลทุกบรรทัดก่อนเก็บลง State
+          const cleanedData = results.data.map((item: any) => {
+            if (item.class_day) {
+              item.class_day = formatDay(item.class_day);
+            }
+            return item;
+          });
+
+          // 🟢 3. อัปเดตข้อมูลที่คลีนแล้วลงไป
+          setData(cleanedData);
           setHeaders(results.meta.fields || []);
           setStatus(`อ่านข้อมูลสำเร็จ: ${results.data.length} รายการ (พบหัวตาราง: ${results.meta.fields?.length} ช่อง)`);
         },
@@ -33,16 +51,58 @@ export default function CSVImportPage() {
     return Array.from(map.values());
   };
 
+  // 🟢 ฟังก์ชันนี้ถูกอัปเกรด: จัดการทั้ง "ค่าว่าง", "ช่องว่างซ่อนเร้น", และ "ฟอร์แมตวันที่"
+  const formatAndCleanData = (arr: any[]) => {
+    return arr.map(item => {
+      const newItem = { ...item };
+      Object.keys(newItem).forEach(key => {
+        
+        // 1. ลบช่องว่างหัว/ท้าย (Trailing spaces) เผื่อเผลอเคาะ Spacebar ใน Excel
+        if (typeof newItem[key] === 'string') {
+          newItem[key] = newItem[key].trim();
+        }
+
+        // 2. 🟢 ถ้าเป็นค่าว่าง "" ให้ส่งเป็น null เพื่อแก้ Error: invalid input syntax for integer
+        if (newItem[key] === "") {
+          newItem[key] = null;
+        }
+        // 3. จัดการฟอร์แมตวันที่ (จาก DD/MM/YY เป็น YYYY-MM-DD)
+        else if (key.includes('date') && newItem[key]) {
+          const dateStr = String(newItem[key]);
+          const parts = dateStr.split('/');
+          
+          if (parts.length === 3) {
+            const day = parts[0].padStart(2, '0');
+            const month = parts[1].padStart(2, '0');
+            let year = parts[2];
+            
+            if (year.length === 2) {
+              year = '20' + year;
+            } else if (year.length === 4 && parseInt(year) > 2500) {
+              year = (parseInt(year) - 543).toString();
+            }
+            
+            newItem[key] = `${year}-${month}-${day}`;
+          }
+        }
+      });
+      return newItem;
+    });
+  };
+
   const handleUpload = async () => {
     if (data.length === 0) return;
     setIsUploading(true);
-    setStatus("⏳ กำลังเตรียมข้อมูลและกรองส่วนที่ซ้ำกัน...");
+    setStatus("⏳ กำลังเตรียมข้อมูลและทำความสะอาดค่าว่าง...");
 
     try {
+      // 🟢 นำข้อมูลมาผ่านเครื่องซักผ้า (ทำความสะอาดข้อมูล) ก่อนอัปโหลด
+      const cleanedData = formatAndCleanData(data);
+
       if (headers.includes("course_name") && !headers.includes("section")) {
         // --- ตาราง master_courses ---
         setStatus("กำลังอัปเดตรายชื่อวิชาหลัก (Master Courses)...");
-        const uniqueData = deduplicate(data, item => item.course_code);
+        const uniqueData = deduplicate(cleanedData, item => item.course_code);
         const { error } = await supabase.from("master_courses").upsert(uniqueData, { onConflict: "course_code" });
         if (error) throw error;
         setStatus(`✅ อัปเดตข้อมูลวิชาหลัก ${uniqueData.length} รายการ เรียบร้อยแล้ว!`);
@@ -54,10 +114,8 @@ export default function CSVImportPage() {
         if (fetchErr) throw fetchErr;
         const validCodes = new Set(existingCourses.map(c => c.course_code));
 
-        const originalCount = data.length;
-        const validData = data.filter(item => validCodes.has(item.course_code));
-        const skippedCount = originalCount - validData.length;
-
+        const validData = cleanedData.filter(item => validCodes.has(item.course_code));
+        
         if (validData.length === 0) throw new Error(`ไม่พบวิชาในระบบเลย กรุณาอัปเดต Master Courses ก่อนครับ`);
 
         setStatus(`กำลังอัปเดตตารางเรียน...`);
@@ -71,14 +129,14 @@ export default function CSVImportPage() {
       else if (headers.includes("prereq_code")) {
         // --- ตาราง prerequisites ---
         setStatus("กำลังอัปเดตวิชาบังคับก่อน...");
-        const { error } = await supabase.from("prerequisites").upsert(data, { onConflict: "course_code,prereq_code" });
+        const { error } = await supabase.from("prerequisites").upsert(cleanedData, { onConflict: "course_code,prereq_code" });
         if (error) throw error;
-        setStatus(`✅ อัปเดตวิชาบังคับก่อน ${data.length} รายการ สำเร็จ!`);
+        setStatus(`✅ อัปเดตวิชาบังคับก่อน ${cleanedData.length} รายการ สำเร็จ!`);
       }
       else if (headers.includes("total_credits") && !headers.includes("category_name")) {
-        // --- ตาราง curriculums (รองรับคอลัมน์ academic_year) ---
+        // --- ตาราง curriculums ---
         setStatus("กำลังอัปเดตข้อมูลหลักสูตร (Curriculums)...");
-        const uniqueData = deduplicate(data, item => item.id);
+        const uniqueData = deduplicate(cleanedData, item => item.id);
         const { error } = await supabase.from("curriculums").upsert(uniqueData, { onConflict: "id" });
         if (error) throw error;
         setStatus(`✅ อัปเดตข้อมูลหลักสูตร ${uniqueData.length} รายการ เรียบร้อยแล้ว!`);
@@ -86,9 +144,9 @@ export default function CSVImportPage() {
       else if (headers.includes("category_name")) {
         // --- ตาราง curriculum_requirements ---
         setStatus("กำลังอัปเดตโครงสร้างหน่วยกิต...");
-        const { error } = await supabase.from("curriculum_requirements").upsert(data, { onConflict: "curriculum_id,category_name" });
+        const { error } = await supabase.from("curriculum_requirements").upsert(cleanedData, { onConflict: "curriculum_id,category_name" });
         if (error) throw error;
-        setStatus(`✅ อัปเดตโครงสร้างหน่วยกิต ${data.length} รายการ สำเร็จ!`);
+        setStatus(`✅ อัปเดตโครงสร้างหน่วยกิต ${cleanedData.length} รายการ สำเร็จ!`);
       }
       else {
         throw new Error("ระบบไม่พบหัวตารางที่คุ้นเคยในไฟล์ CSV นี้ กรุณาตรวจสอบชื่อคอลัมน์ครับ");

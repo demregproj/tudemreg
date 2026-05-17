@@ -1,5 +1,3 @@
-// src/app/login/page.tsx
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -154,7 +152,7 @@ export default function LoginPage() {
             <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full mt-2 bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl outline-none font-bold focus:border-[#1E0B99]" placeholder="••••••••" />
           </div>
           
-          {/* 🟢 ปุ่มเข้าสู่ระบบที่อัปเดต Hover Interaction และข้อความใหม่ */}
+          {/* 🟢 ปุ่มเข้าสู่ระบบที่แก้ให้เปลี่ยนข้อความตามโหมด */}
           <button 
             type="submit" 
             disabled={isLoading} 
@@ -164,9 +162,17 @@ export default function LoginPage() {
               : 'bg-[#1E0B99] hover:bg-black'
             }`}
           >
-            {isLoading ? "กำลังตรวจสอบ..." : "เข้าสู่ระบบด้วย TU-Account"}
+            {isLoading ? "กำลังตรวจสอบ..." : (loginMode === 'TU' ? "เข้าสู่ระบบด้วย TU-Account" : "เข้าสู่ระบบ (Log-in)")}
           </button>
         </form>
+
+        {/* 🟢 ลิงก์ไปหน้าสมัครสมาชิก (โผล่เฉพาะตอนเลือกบุคคลทั่วไป) */}
+        {loginMode === "GENERAL" && (
+          <p className="text-center mt-6 text-sm font-bold text-gray-500">
+            ยังไม่มีบัญชีใช่หรือไม่? <Link href="/register" className="text-[#1E0B99] hover:underline italic">สมัครสมาชิกที่นี่</Link>
+          </p>
+        )}
+
         {alert && <div className="mt-6 p-4 rounded-xl text-sm font-bold text-center bg-red-50 text-red-700 border border-red-200"><p>{alert.message}</p></div>}
       </div>
 
