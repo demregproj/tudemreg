@@ -7,6 +7,9 @@ import { useRouter } from "next/navigation";
 export default function LandingPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
+  
+  // 🟢 State สำหรับเปิดปิดกล่อง FAQ
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
 
   useEffect(() => {
     // เช็กสถานะตอนโหลดหน้าแรก
@@ -18,6 +21,51 @@ export default function LandingPage() {
     // ถ้าเลือก Guest พาไปหน้าจัดตารางเลย
     router.push("/timetable");
   };
+
+  // 🟢 ฟังก์ชันสลับการเปิด/ปิด FAQ
+  const toggleFaq = (index: number) => {
+    setOpenFaqIndex(openFaqIndex === index ? null : index);
+  };
+
+  // 🟢 ข้อมูลคำถาม-คำตอบทั้งหมดของคุณปภาวินท์
+  const faqs = [
+    {
+      question: "ข้อมูลวิชาอัปเดตแค่ไหน?",
+      answer: "ข้อมูลจะถูกดึงมาจากประกาศของมหาวิทยาลัยและอัปเดตอย่างต่อเนื่องโดยแอดมิน (ไม่ใช่การอัพเดตเรียลไทม์) ทั้งนี้แนะนำให้ตรวจสอบความถูกต้องของข้อมูลอีกครั้งก่อนนำไปใช้อ้างอิงจริง"
+    },
+    {
+      question: "ยังต้องลงทะเบียนเรียนผ่าน reg tu หรือไม่?",
+      answer: "จำเป็น! เว็บไซต์ของเราเป็นเพียงเครื่องมือในการวางแผนการเรียน และไม่สามารถแทนที่การลงทะเบียนเรียนในระบบ reg tu"
+    },
+    {
+      question: "ยังต้องขอโควตาหรือไม่?",
+      answer: "จำเป็น! เว็บไซต์ของเราเป็นเพียงเครื่องมือในการวางแผนการเรียน ไม่มีการยื่นคำร้องขอโควตา โดยผู้ใช้ต้องดำเนินการขอโควตาผ่านคณะต่างๆ ด้วยตนเอง"
+    },
+    {
+      question: "จำเป็นต้องสมัครสมาชิกหรือไม่?",
+      answer: "สามารถใช้งานได้ทันทีผ่าน Guest Mode แต่ข้อมูลจะไม่ถูกบันทึก หากต้องการบันทึกข้อมูลต้องทำการเข้าสู่ระบบ โดยหากเป็นนักศึกษามธ. สามารถเข้าใช้งานได้ทันทีผ่าน TU-Account"
+    },
+    {
+      question: "ข้อมูลบัญชีเชื่อมกับระบบของมหาวิทยาลัยไหม?",
+      answer: "ข้อมูลไม่ได้เชื่อมต่อกับระบบของมหาวิทยาลัยโดยตรง การ login ด้วย TU-Account เป็นเพียงการยืนยันตัวตนผ่านระบบ API ของมหาวิทยาลัยเท่านั้น ไม่มีการเก็บข้อมูลส่วนตัวของผู้ใช้"
+    },
+    {
+      question: "ข้อมูล TU-Account หรือรหัสผ่านจะถูกเก็บหรือไม่?",
+      answer: "การเข้าสู่ระบบผ่าน TU-Account ข้อมูลรหัสนักศึกษาจะไม่ถูกเก็บในฐานข้อมูลของเรา การ login ด้วย TU-Account เป็นเพียงการยืนยันตัวตนผ่าน API ของมหาวิทยาลัยเท่านั้น ผู้พัฒนาจะไม่ได้รับข้อมูลส่วนตัวของผู้ใช้โดยตรงรวมถึงรหัสผ่าน TU-Account เช่นกัน"
+    },
+    {
+      question: "เว็บไซต์นี้เป็นเว็บไซต์ทางการหรือไม่?",
+      answer: "ไม่ใช่! เว็บไซต์นี้เป็นเว็บไซต์ที่พัฒนาโดยนักศึกษาเพื่อประโยชน์ในการช่วยวางแผนการเรียนเท่านั้น ไม่ใช่เว็บไซต์ทางการของมหาวิทยาลัยและไม่มีส่วนเกี่ยวข้องกับมหาวิทยาลัย"
+    },
+    {
+      question: "ข้อมูลบนเว็บไซต์น่าเชื่อถือหรือไม่?",
+      answer: "เว็บไซต์ของเราเป็นเพียงเครื่องมือในการวางแผนการเรียนโดยอ้างอิงจากข้อมูลประกาศของมหาวิทยาลัย อย่างไรก็ตาม ผู้ใช้ควรตรวจสอบข้อมูลให้แน่ใจก่อนนำไปใช้ และผู้พัฒนาไม่มีส่วนรับผิดชอบต่อความถูกต้องของข้อมูลกรณีที่ผู้ใช้นำไปใช้โดยไม่ตรวจสอบอีกครั้ง"
+    },
+    {
+      question: "ผู้พัฒนาเว็บไซต์นี้คือใคร และติดต่อได้อย่างไร?",
+      answer: "เราคือกลุ่มนักศึกษาที่พัฒนาเว็บไซต์นี้ขึ้นมาเพื่อประโยชน์ในการใช้งานของนักศึกษาทุกคน สามารถติดต่อเราได้ที่ demreg.proj@gmail.com"
+    }
+  ];
 
   return (
     <div className="bg-white font-sans text-gray-900 w-full">
@@ -109,46 +157,52 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* --- 4. Q&A Section --- */}
+      {/* --- 4. Q&A Section (เปลี่ยนเป็นแบบ Accordion พับเก็บได้) --- */}
       <section className="py-24 px-6 max-w-4xl mx-auto w-full flex-grow">
-        <h3 className="text-3xl font-black mb-12 text-center uppercase italic">คำถามที่พบบ่อย (Q&A)</h3>
+        <div className="text-center mb-12">
+          <h3 className="text-3xl font-black mb-2 uppercase italic text-[#1E0B99]">คำถามที่พบบ่อย (Q&A)</h3>
+          <p className="text-sm font-bold text-gray-500 uppercase tracking-widest">
+            ข้อควรทราบก่อนการใช้งานระบบ
+          </p>
+        </div>
+        
         <div className="space-y-4">
-          <div className="bg-white p-8 rounded-3xl border-2 border-gray-100 shadow-sm">
-            <h6 className="font-black text-[#1E0B99] text-xl mb-3 italic">Q: ข้อมูลวิชาอัปเดตแค่ไหน?</h6>
-            <p className="font-bold text-gray-500">A: ข้อมูลจะถูกดึงมาจากประกาศของมหาวิทยาลัยและอัปเดตอย่างต่อเนื่องโดยแอดมิน (ไม่ใช่การอัพเดตเรียลไทม์) ทั้งนี้แนะนำให้ตรวจสอบความถูกต้องของข้อมูลอีกครั้งก่อนนำไปใช้อ้างอิงจริง</p>
-          </div>
-          <div className="bg-white p-8 rounded-3xl border-2 border-gray-100 shadow-sm">
-            <h6 className="font-black text-[#1E0B99] text-xl mb-3 italic">Q: ยังต้องลงทะเบียนเรียนผ่าน reg tu หรือไม่?</h6>
-            <p className="font-bold text-gray-500">A: จำเป็น! เว็บไซต์ของเราเป็นเพียงเครื่องมือในการวางแผนการเรียน และไม่สามารถแทนที่การลงทะเบียนเรียนในระบบ reg tu</p>
-          </div>
-          <div className="bg-white p-8 rounded-3xl border-2 border-gray-100 shadow-sm">
-            <h6 className="font-black text-[#1E0B99] text-xl mb-3 italic">Q: ยังต้องขอโควตาหรือไม่?</h6>
-            <p className="font-bold text-gray-500">A: จำเป็น! เว็บไซต์ของเราเป็นเพียงเครื่องมือในการวางแผนการเรียน ไม่มีการยื่นคำร้องขอโควตา โดยผู้ใช้ต้องดำเนินการขอโควตาผ่านคณะต่างๆ ด้วยตนเอง</p>
-          </div>
-          <div className="bg-white p-8 rounded-3xl border-2 border-gray-100 shadow-sm">
-            <h6 className="font-black text-[#1E0B99] text-xl mb-3 italic">Q: จำเป็นต้องสมัครสมาชิกหรือไม่?</h6>
-            <p className="font-bold text-gray-500">A: สามารถใช้งานได้ทันทีผ่าน Guest Mode แต่ข้อมูลจะไม่ถูกบันทึก หากต้องการบันทึกข้อมูลต้องทำการเข้าสู่ระบบ โดยหากเป็นนักศึกษามธ. สามารถเข้าใช้งานได้ทันทีผ่าน TU-Account</p>
-          </div>
-          <div className="bg-white p-8 rounded-3xl border-2 border-gray-100 shadow-sm">
-            <h6 className="font-black text-[#1E0B99] text-xl mb-3 italic">Q: ข้อมูลบัญชีเชื่อมกับระบบของมหาวิทยาลัยไหม?</h6>
-            <p className="font-bold text-gray-500">A: ข้อมูลไม่ได้เชื่อมต่อกับระบบของมหาวิทยาลัยโดยตรง การ login ด้วย TU-Account เป็นเพียงการยืนยันตัวตนผ่านระบบ API ของมหาวิทยาลัยเท่านั้น ไม่มีการเก็บข้อมูลส่วนตัวของผู้ใช้</p>
-          </div>
-          <div className="bg-white p-8 rounded-3xl border-2 border-gray-100 shadow-sm">
-            <h6 className="font-black text-[#1E0B99] text-xl mb-3 italic">Q: ข้อมูล TU-Account หรือรหัสผ่านจะถูกเก็บหรือไม่?</h6>
-            <p className="font-bold text-gray-500">A: การเข้าสู่ระบบผ่าน TU-Account ข้อมูลรหัสนักศึกษาจะไม่ถูกเก็บในฐานข้อมูลของเรา การ login ด้วย TU-Account เป็นเพียงการยืนยันตัวตนผ่าน API ของมหาวิทยาลัยเท่านั้น ผู้พัฒนาจะไม่ได้รับข้อมูลส่วนตัวของผู้ใช้โดยตรงรวมถึงรหัสผ่าน TU-Account เช่นกัน</p>
-          </div>
-          <div className="bg-white p-8 rounded-3xl border-2 border-gray-100 shadow-sm">
-            <h6 className="font-black text-[#1E0B99] text-xl mb-3 italic">Q: เว็บไซต์นี้เป็นเว็บไซต์ทางการหรือไม่?</h6>
-            <p className="font-bold text-gray-500">A: ไม่ใช่! เว็บไซต์นี้เป็นเว็บไซต์ที่พัฒนาโดยนักศึกษาเพื่อประโยชน์ในการช่วยวางแผนการเรียนเท่านั้น ไม่ใช่เว็บไซต์ทางการของมหาวิทยาลัยและไม่มีส่วนเกี่ยวข้องกับมหาวิทยาลัย</p>
-          </div>
-          <div className="bg-white p-8 rounded-3xl border-2 border-gray-100 shadow-sm">
-            <h6 className="font-black text-[#1E0B99] text-xl mb-3 italic">Q: ข้อมูลบนเว็บไซต์น่าเชื่อถือหรือไม่?</h6>
-            <p className="font-bold text-gray-500">A: เว็บไซต์ของเราเป็นเพียงเครื่องมือในการวางแผนการเรียนโดยอ้างอิงจากข้อมูลประกาศของมหาวิทยาลัย อย่างไรก็ตาม ผู้ใช้ควรตรวจสอบข้อมูลให้แน่ใจก่อนนำไปใช้ และผู้พัฒนาไม่มีส่วนรับผิดชอบต่อความถูกต้องของข้อมูลกรณีที่ผู้ใช้นำไปใช้โดยไม่ตรวจสอบอีกครั้ง</p>
-          </div>
-          <div className="bg-white p-8 rounded-3xl border-2 border-gray-100 shadow-sm">
-            <h6 className="font-black text-[#1E0B99] text-xl mb-3 italic">Q: ผู้พัฒนาเว็บไซต์นี้คือใคร และติดต่อได้อย่างไร?</h6>
-            <p className="font-bold text-gray-500">A: เราคือกลุ่มนักศึกษาที่พัฒนาเว็บไซต์นี้ขึ้นมาเพื่อประโยชน์ในการใช้งานของนักศึกษาทุกคน สามารถติดต่อเราได้ที่ demreg.proj@gmail.com</p>
-          </div>
+          {faqs.map((faq, index) => (
+            <div 
+              key={index} 
+              className={`border-2 rounded-2xl overflow-hidden transition-all duration-300 ${
+                openFaqIndex === index ? "border-[#1E0B99] bg-blue-50/30 shadow-md" : "border-gray-100 bg-white hover:border-gray-300"
+              }`}
+            >
+              <button
+                onClick={() => toggleFaq(index)}
+                className="w-full text-left px-6 py-5 flex items-center justify-between gap-4 outline-none"
+              >
+                <h4 className={`text-base md:text-lg font-black transition-colors ${openFaqIndex === index ? "text-[#1E0B99]" : "text-gray-900"}`}>
+                  <span className="text-[#1E0B99] italic mr-2">Q:</span>{faq.question}
+                </h4>
+                <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-transform duration-300 ${
+                  openFaqIndex === index ? "bg-[#1E0B99] text-white rotate-180" : "bg-gray-100 text-gray-400"
+                }`}>
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </button>
+              
+              {/* ส่วนเนื้อหาคำตอบที่จะ Slide down */}
+              <div 
+                className={`transition-all duration-300 ease-in-out ${
+                  openFaqIndex === index ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                }`}
+              >
+                <div className="px-6 pb-6 pt-0 text-sm md:text-base font-bold text-gray-600 leading-relaxed">
+                  <div className="w-full h-[2px] bg-gray-100 mb-4"></div>
+                  <span className="text-green-600 font-black italic mr-2">A:</span>{faq.answer}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -159,7 +213,6 @@ export default function LandingPage() {
             <div>
               <h4 className="text-xl font-black mb-8 uppercase border-l-4 border-[#FBBF24] pl-4 italic">นโยบายความเป็นส่วนตัว (PDPA)</h4>
               
-              {/* 🟢 ส่วนที่ปรับแก้ข้อความให้สั้นลงและเพิ่ม Link */}
               <div className="text-sm text-gray-400 font-bold leading-relaxed">
                 <p className="mb-4">
                   เราให้ความสำคัญกับการปกป้องข้อมูลส่วนบุคคลของคุณ ข้อมูลที่จัดเก็บจะถูกใช้เพื่อการบริหารจัดการแผนการเรียนส่วนบุคคลของคุณเท่านั้น

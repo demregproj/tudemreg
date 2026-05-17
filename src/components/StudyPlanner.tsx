@@ -266,6 +266,30 @@ export default function StudyPlanner() {
     setDraggedItem(null);
   };
 
+  // 🟢 ฟังก์ชันสำหรับกดย้ายเทอม (ใช้บนมือถือแทนการลาก)
+  const handleMoveCourse = (sourceSemId: string, courseCode: string, targetSemId: string) => {
+    if (sourceSemId === targetSemId) return;
+
+    setPlan(prevPlan => {
+      const newPlan = [...prevPlan];
+      const sourceSemIndex = newPlan.findIndex(s => s.id === sourceSemId);
+      const targetSemIndex = newPlan.findIndex(s => s.id === targetSemId);
+
+      const courseToMove = newPlan[sourceSemIndex].courses.find(c => c.code === courseCode);
+      if (!courseToMove) return prevPlan;
+
+      if (newPlan[targetSemIndex].courses.some(c => c.code === courseCode)) {
+        setCustomAlert({ isOpen: true, type: 'warning', title: 'ย้ายวิชาไม่ได้', message: 'วิชานี้มีอยู่ในเทอมปลายทางแล้วครับ!' });
+        return prevPlan;
+      }
+
+      newPlan[sourceSemIndex] = { ...newPlan[sourceSemIndex], courses: newPlan[sourceSemIndex].courses.filter(c => c.code !== courseCode) };
+      newPlan[targetSemIndex] = { ...newPlan[targetSemIndex], courses: [...newPlan[targetSemIndex].courses, courseToMove] };
+
+      return newPlan;
+    });
+  };
+
   const handleAddCourse = (course: Course) => {
     if (!targetSemesterId) return;
     setPlan(prev => prev.map(sem => {
@@ -344,7 +368,7 @@ export default function StudyPlanner() {
     if (!plannerRef.current) return;
     try {
       const canvas = await html2canvas(plannerRef.current, {
-        scale: 2, 
+        scale: 1, // 🟢 ลด scale ลงมาเป็น 1
         backgroundColor: "#FFFFFF", 
         useCORS: true, 
       });
@@ -352,11 +376,16 @@ export default function StudyPlanner() {
       const link = document.createElement("a");
       link.href = image;
       link.download = `REGPLANing-StudyPlan-${new Date().getTime()}.png`;
+      
+      // 🟢 บังคับให้เบราว์เซอร์มือถือรู้จักปุ่มก่อนกดโหลด
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
+      
       setCustomAlert({ isOpen: true, type: "success", title: "เซฟรูปสำเร็จ!", message: "ระบบได้บันทึกแผนการเรียนเป็นรูปภาพลงในเครื่องของคุณแล้วครับ" });
     } catch (err) {
       console.error("Export Failed:", err);
-      setCustomAlert({ isOpen: true, type: "error", title: "เกิดข้อผิดพลาด", message: "ไม่สามารถบันทึกรูปภาพได้ครับ" });
+      setCustomAlert({ isOpen: true, type: "error", title: "เกิดข้อผิดพลาด", message: "ไม่สามารถบันทึกรูปภาพได้ครับ (ขนาดรูปอาจใหญ่เกินไป)" });
     }
   };
 
@@ -365,7 +394,6 @@ export default function StudyPlanner() {
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-6 md:p-10 font-sans text-gray-900">
       
-      {/* 🟢 แก้ปุ่มบันทึกและเซฟรูปให้พอดีจอมือถือ (เต็มความกว้าง) */}
       <div className="flex flex-col sm:flex-row justify-end gap-3 mb-6">
         <button onClick={handleExportImage} className="w-full sm:w-auto px-6 py-3 md:py-2.5 rounded-xl font-bold text-sm transition-all shadow-md flex justify-center items-center gap-2 bg-[#1E0B99] text-white hover:bg-black hover:-translate-y-1">
           📸 เซฟเป็นรูปภาพ
@@ -377,7 +405,6 @@ export default function StudyPlanner() {
 
       <div ref={plannerRef} className="bg-white p-4 md:p-8 rounded-[2rem]">
         
-        {/* 🟢 จัด Layout Header ให้สวยงามทั้งบนมือถือและคอม */}
         <div className="mb-8 md:mb-10 flex flex-col md:flex-row justify-between items-start gap-6">
           <div className="w-full md:w-auto">
             <h1 className="text-3xl md:text-5xl font-black mb-4 md:mb-6 tracking-tight border-b-[4px] md:border-b-[6px] border-gray-900 inline-block pb-2">วางแผนการเรียน</h1>
@@ -522,6 +549,25 @@ export default function StudyPlanner() {
                              หมวด: {course.user_type || "ไม่ได้เลือก"}
                           </div>
                         </div>
+
+                        {/* 🟢 กล่องย้ายเทอม (ซ่อนบนคอม โผล่เฉพาะมือถือ) */}
+                        <div className="md:hidden mt-2" data-html2canvas-ignore>
+                          <select
+                            value=""
+                            onChange={(e) => {
+                               if (e.target.value) handleMoveCourse(semester.id, course.code, e.target.value);
+                            }}
+                            className={`w-full text-[10px] md:text-[11px] font-bold border border-dashed border-gray-400 rounded-lg p-2 outline-none cursor-pointer bg-white/50 text-gray-700`}
+                          >
+                            <option value="" disabled>🔄 แตะเพื่อย้ายเทอม...</option>
+                            {plan.map(s => (
+                              <option key={`move-${s.id}`} value={s.id} disabled={s.id === semester.id}>
+                                 ย้ายไป 👉 ปี {s.year} เทอม {s.term}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
                         {prereqs.length > 0 && (
                           <div className="bg-white/80 p-2 md:p-2.5 rounded-xl border border-black/5 mt-auto space-y-1">
                             {prereqs.map((p, i) => (
@@ -551,7 +597,6 @@ export default function StudyPlanner() {
         <button onClick={handleAddSemester} className="w-full py-4 bg-gray-100 hover:bg-gray-200 text-gray-600 font-black text-[10px] md:text-xs uppercase tracking-widest rounded-xl transition-all">Add Semester (1-2-S)</button>
       </div>
 
-      {/* 🟢 แก้ Layout ของหน้าต่าง Search Course ให้พอดีมือถือ */}
       {isSearchOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-2 sm:p-4">
            <div className="bg-white w-full max-w-3xl h-[95vh] md:h-auto md:max-h-[85vh] rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-8 overflow-hidden flex flex-col shadow-2xl">
@@ -651,7 +696,6 @@ export default function StudyPlanner() {
         </div>
       )}
 
-      {/* 🟢 แก้ Layout Alert Modal สำหรับมือถือ */}
       {customAlert && customAlert.isOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
           <div className="bg-white rounded-[2rem] md:rounded-[2.5rem] shadow-2xl max-w-sm w-full p-8 md:p-10 text-center animate-in fade-in zoom-in duration-200">

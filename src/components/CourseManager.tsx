@@ -177,7 +177,7 @@ export default function CourseManager({ allCourses }: { allCourses: any[] }) {
     if (!timetableRef.current) return;
     try {
       const canvas = await html2canvas(timetableRef.current, {
-        scale: 2.5, 
+        scale: 1, // 🟢 ลด scale ลงมาเป็น 1 เพื่อไม่ให้เกิน Memory ของมือถือ
         backgroundColor: "#F9FAFB", 
         useCORS: true, 
       });
@@ -185,11 +185,16 @@ export default function CourseManager({ allCourses }: { allCourses: any[] }) {
       const link = document.createElement("a");
       link.href = image;
       link.download = `REGPLANing-Schedule-${new Date().getTime()}.png`;
+      
+      // 🟢 บังคับให้เบราว์เซอร์มือถือรู้จักปุ่มก่อนกดโหลด
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
+      
       setCustomAlert({ isOpen: true, type: "success", title: "เซฟรูปสำเร็จ!", messages: ["ระบบได้บันทึกตารางเรียนเป็นรูปภาพลงในเครื่องของคุณแล้วครับ"] });
     } catch (err) {
       console.error("Export Failed:", err);
-      setCustomAlert({ isOpen: true, type: "error", title: "เกิดข้อผิดพลาด", messages: ["ไม่สามารถบันทึกรูปภาพได้ครับ"] });
+      setCustomAlert({ isOpen: true, type: "error", title: "เกิดข้อผิดพลาด", messages: ["ไม่สามารถบันทึกรูปภาพได้ครับ (ขนาดรูปอาจใหญ่เกินไป)"] });
     }
   };
 
