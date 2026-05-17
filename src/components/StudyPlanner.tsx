@@ -368,24 +368,42 @@ export default function StudyPlanner() {
     if (!plannerRef.current) return;
     try {
       const canvas = await html2canvas(plannerRef.current, {
-        scale: 1, // 🟢 ลด scale ลงมาเป็น 1
+        scale: 1.5, 
         backgroundColor: "#FFFFFF", 
         useCORS: true, 
       });
-      const image = canvas.toDataURL("image/png");
+
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+      if (!blob) throw new Error("ไม่สามารถสร้างไฟล์รูปภาพได้");
+
+      const fileName = `REGPLANing-StudyPlan-${new Date().getTime()}.png`;
+      const file = new File([blob], fileName, { type: "image/png" });
+
+      // 🟢 ฟีเจอร์ใหม่: ถ้ารองรับการ Share ให้เด้งเมนูแชร์ของระบบมือถือ
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: "My REGPLANing Study Plan" });
+          return; 
+        } catch (e) {
+          console.log("ผู้ใช้กดยกเลิกการ Share");
+          return;
+        }
+      }
+
+      // ดาวน์โหลดปกติสำหรับคอมพิวเตอร์
+      const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.href = image;
-      link.download = `REGPLANing-StudyPlan-${new Date().getTime()}.png`;
-      
-      // 🟢 บังคับให้เบราว์เซอร์มือถือรู้จักปุ่มก่อนกดโหลด
+      link.href = url;
+      link.download = fileName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(url);
       
-      setCustomAlert({ isOpen: true, type: "success", title: "เซฟรูปสำเร็จ!", message: "ระบบได้บันทึกแผนการเรียนเป็นรูปภาพลงในเครื่องของคุณแล้วครับ" });
+      setCustomAlert({ isOpen: true, type: "success", title: "เซฟรูปสำเร็จ!", message: "ระบบได้บันทึกแผนการเรียนเป็นรูปภาพแล้วครับ" });
     } catch (err) {
       console.error("Export Failed:", err);
-      setCustomAlert({ isOpen: true, type: "error", title: "เกิดข้อผิดพลาด", message: "ไม่สามารถบันทึกรูปภาพได้ครับ (ขนาดรูปอาจใหญ่เกินไป)" });
+      setCustomAlert({ isOpen: true, type: "error", title: "เซฟรูปไม่สำเร็จ", message: "ระบบมือถืออาจมีข้อจำกัดด้านหน่วยความจำ แนะนำให้ใช้วิธีแคปหน้าจอ (Screenshot) แทนครับ" });
     }
   };
 

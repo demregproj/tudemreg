@@ -176,25 +176,45 @@ export default function CourseManager({ allCourses }: { allCourses: any[] }) {
   const handleExportImage = async () => {
     if (!timetableRef.current) return;
     try {
+      // 1. แคปหน้าจอเป็น Canvas (ใช้ scale 1.5 เพื่อให้ชัดพอดี ไม่กินแรม)
       const canvas = await html2canvas(timetableRef.current, {
-        scale: 1, // 🟢 ลด scale ลงมาเป็น 1 เพื่อไม่ให้เกิน Memory ของมือถือ
+        scale: 1.5, 
         backgroundColor: "#F9FAFB", 
         useCORS: true, 
       });
-      const image = canvas.toDataURL("image/png");
+
+      // 2. แปลงเป็น Blob (ไฟล์) แทน DataURL เพื่อแก้ปัญหาแรมมือถือเต็ม
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+      if (!blob) throw new Error("ไม่สามารถสร้างไฟล์รูปภาพได้");
+
+      const fileName = `REGPLANing-Schedule-${new Date().getTime()}.png`;
+      const file = new File([blob], fileName, { type: "image/png" });
+
+      // 3. 🟢 ฟีเจอร์ใหม่: ถ้ารองรับการ Share (บนมือถือ/แท็บเล็ต) ให้เด้งเมนูแชร์ของเครื่อง
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: "My REGPLANing Schedule" });
+          return; // จบการทำงานถ้าแชร์สำเร็จ
+        } catch (e) {
+          console.log("ผู้ใช้กดยกเลิกการ Share");
+          return;
+        }
+      }
+
+      // 4. ถ้าเป็นคอมพิวเตอร์ หรือกด Share ไม่ได้ ให้ดาวน์โหลดลงเครื่องปกติ
+      const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.href = image;
-      link.download = `REGPLANing-Schedule-${new Date().getTime()}.png`;
-      
-      // 🟢 บังคับให้เบราว์เซอร์มือถือรู้จักปุ่มก่อนกดโหลด
+      link.href = url;
+      link.download = fileName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(url); // คืนพื้นที่หน่วยความจำให้เบราว์เซอร์
       
-      setCustomAlert({ isOpen: true, type: "success", title: "เซฟรูปสำเร็จ!", messages: ["ระบบได้บันทึกตารางเรียนเป็นรูปภาพลงในเครื่องของคุณแล้วครับ"] });
+      setCustomAlert({ isOpen: true, type: "success", title: "เซฟรูปสำเร็จ!", messages: ["ระบบได้บันทึกตารางเรียนเป็นรูปภาพแล้วครับ"] });
     } catch (err) {
       console.error("Export Failed:", err);
-      setCustomAlert({ isOpen: true, type: "error", title: "เกิดข้อผิดพลาด", messages: ["ไม่สามารถบันทึกรูปภาพได้ครับ (ขนาดรูปอาจใหญ่เกินไป)"] });
+      setCustomAlert({ isOpen: true, type: "error", title: "เซฟรูปไม่สำเร็จ", messages: ["ระบบมือถืออาจมีข้อจำกัดด้านหน่วยความจำ แนะนำให้ใช้วิธีแคปหน้าจอ (Screenshot) แทนครับ"] });
     }
   };
 
